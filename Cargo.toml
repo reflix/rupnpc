@@ -1,0 +1,16 @@
+[package]
+name = "rupnpc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+structopt = "0.3"
+
+rupnp = { version = "1.1", features = ["full_device_spec"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+anyhow = "1"
+futures = "0.3"
+pin-utils = "0.1"
+rt-format = "0.3"
