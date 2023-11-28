@@ -8,6 +8,7 @@ USAGE:
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
+    -w, --warn       Show warnings on erroneous responses
 
 OPTIONS:
     -d, --duration <duration>              Scan duration in seconds [default: 3]

@@ -6,7 +6,7 @@ use futures::TryStreamExt;
 use rupnp::ssdp::{SearchTarget, URN};
 use structopt::StructOpt;
 use anyhow::{Context, Result};
-use rt_format::{Format, FormatArgument, ParsedFormat, Specifier};
+use rt_format::{FormatArgument, ParsedFormat, Specifier};
 use rupnp::Device;
 use rupnp::http::Uri;
 
@@ -19,6 +19,10 @@ struct Args {
     /// Scan duration in seconds.
     #[structopt(long, short, default_value = "3")]
     duration: u8,
+
+    /// Show warnings on erroneous responses
+    #[structopt(long, short)]
+    warn: bool,
 
     /// Set output format. Available format strings are:
     ///     - name
@@ -41,24 +45,40 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::from_args();
-
+    println!("warn {}", args.warn);
     let search_target: SearchTarget = (&args).try_into()?;
     let devices = rupnp::discover(&search_target, (&args).into()).await?;
     pin_utils::pin_mut!(devices);
     let format = args.format.unwrap_or_else(|| "name: {name}, manufacturer: {manufacturer}, model_name: {model_name}, udn: {udn}, url: {url}".into());
     let vec = Vec::new();
-    while let Some(device) = devices.try_next().await? {
+    let mut erroneous_responses = 0;
+    loop {
+        let device = match devices.try_next().await {
+            Ok(Some(device)) => device,
+            Ok(None) => break,
+            Err(e) => {
+                erroneous_responses += 1;
+                if args.warn {
+                    eprintln!("{e}")
+                }
+                continue;
+            }
+        };
+
         let named = device.to_named_args();
-        let format = match ParsedFormat::parse(&format, &vec, &named) {
-            Ok(format) => format,
+        match ParsedFormat::parse(&format, &vec, &named) {
+            Ok(format) => println!("{format}"),
             Err(error_pos) => {
                 eprintln!("Invalid format string at position {error_pos}");
                 break;
             }
         };
-
-        println!("{}", format);
     }
+
+    if args.warn && erroneous_responses > 0 {
+        eprintln!("WARN: Received {erroneous_responses} erroneous responses.");
+    }
+
     Ok(())
 }
 
@@ -113,7 +133,7 @@ enum Value<'a> {
 
 impl<'a> FormatArgument for Value<'a> {
     fn supports_format(&self, specifier: &Specifier) -> bool {
-        matches!(specifier.format, Format::Display | Format::Debug)
+        matches!(specifier.format, rt_format::Format::Display | rt_format::Format::Debug)
     }
 
     fn fmt_display(&self, f: &mut Formatter) -> std::fmt::Result {
