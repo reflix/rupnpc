@@ -1,5 +1,5 @@
 ```
-rupnpc 0.1.0
+rupnpc 0.1.1
 Simple UPnP discoverer written in rust.
 
 USAGE:
