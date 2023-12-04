@@ -1,5 +1,5 @@
 ```
-rupnpc 0.1.0
+rupnpc 0.1.1
 Simple UPnP discoverer written in rust.
 
 USAGE:
@@ -8,6 +8,7 @@ USAGE:
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
+    -w, --warn       Show warnings on erroneous responses
 
 OPTIONS:
     -d, --duration <duration>              Scan duration in seconds [default: 3]
