@@ -13,8 +13,9 @@ use std::time::Duration;
 #[derive(Debug, Parser)]
 #[command(name = "rupnpc", about = "Simple UPnP discoverer written in rust")]
 struct Args {
+    /// Search for a specific resource with the given unique resource name.
     #[arg(long, short)]
-    search_target: Option<String>,
+    urn: Option<String>,
 
     /// Scan duration in seconds.
     #[arg(long, short, default_value = "3")]
@@ -93,7 +94,7 @@ impl TryFrom<&Args> for SearchTarget {
     type Error = anyhow::Error;
 
     fn try_from(arguments: &Args) -> std::result::Result<Self, Self::Error> {
-        match &arguments.search_target {
+        match &arguments.urn {
             None => Ok(SearchTarget::All),
             Some(value) => SearchTarget::from_str(value.as_str())
                 .with_context(|| format!("Unable to convert '{value}' to an URN.")),
