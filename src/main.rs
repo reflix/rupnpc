@@ -55,7 +55,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let search_target = (&args).try_into()?;
+    let search_target = SearchTarget::try_from(&args)?;
     let duration = Duration::from_secs(args.duration as u64);
     let devices = rupnp::discover(&search_target, duration, args.ttl).await?;
     pin_utils::pin_mut!(devices);
