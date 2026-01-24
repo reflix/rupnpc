@@ -2,9 +2,9 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use futures::TryStreamExt;
 use rt_format::{FormatArgument, ParsedFormat, Specifier};
-use rupnp::Device;
 use rupnp::http::Uri;
 use rupnp::ssdp::{SearchTarget, URN};
+use rupnp::Device;
 use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::str::FromStr;
@@ -55,7 +55,6 @@ async fn main() -> Result<()> {
     pin_utils::pin_mut!(devices);
     let format = args.format.unwrap_or_else(|| "name: {name}, manufacturer: {manufacturer}, model_name: {model_name}, udn: {udn}, url: {url}".into());
 
-    let vec = Vec::new();
     let mut erroneous_responses = 0;
     loop {
         let device = match devices.try_next().await {
@@ -69,9 +68,8 @@ async fn main() -> Result<()> {
                 continue;
             }
         };
-
         let named = device.to_named_args();
-        match ParsedFormat::parse(&format, &vec, &named) {
+        match ParsedFormat::parse(&format, &[], &named) {
             Ok(format) => println!("{format}"),
             Err(error_pos) => {
                 eprintln!("Invalid format string at position {error_pos}");
