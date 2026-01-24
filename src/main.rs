@@ -5,7 +5,7 @@ use rt_format::{FormatArgument, ParsedFormat, Specifier};
 use rupnp::http::Uri;
 use rupnp::ssdp::{SearchTarget, URN};
 use rupnp::Device;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Formatter;
 use std::str::FromStr;
 use std::time::Duration;
@@ -56,6 +56,7 @@ async fn main() -> Result<()> {
     let format = args.format.unwrap_or_else(|| "name: {name}, manufacturer: {manufacturer}, model_name: {model_name}, udn: {udn}, url: {url}".into());
 
     let mut erroneous_responses = 0;
+    let mut printed_devices = HashSet::new();
     loop {
         let device = match devices.try_next().await {
             Ok(Some(device)) => device,
@@ -68,6 +69,9 @@ async fn main() -> Result<()> {
                 continue;
             }
         };
+        if !printed_devices.insert(device.udn().to_string()) {
+            continue;
+        }
         let named = device.to_named_args();
         match ParsedFormat::parse(&format, &[], &named) {
             Ok(format) => println!("{format}"),
