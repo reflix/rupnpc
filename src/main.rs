@@ -2,10 +2,10 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use futures::TryStreamExt;
 use rt_format::{FormatArgument, ParsedFormat, Specifier};
-use rupnp::Device;
 use rupnp::http::Uri;
 use rupnp::ssdp::{SearchTarget, URN};
-use std::collections::HashMap;
+use rupnp::Device;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Formatter;
 use std::str::FromStr;
 use std::time::Duration;
@@ -13,8 +13,9 @@ use std::time::Duration;
 #[derive(Debug, Parser)]
 #[command(name = "rupnpc", about = "Simple UPnP discoverer written in rust")]
 struct Args {
+    /// Search for a specific resource with the given unique resource name.
     #[arg(long, short)]
-    search_target: Option<String>,
+    urn: Option<String>,
 
     /// Scan duration in seconds.
     #[arg(long, short, default_value = "3")]
@@ -44,19 +45,24 @@ struct Args {
     /// To print name and url for each discovered item pass -f "{name} {url}".
     #[arg(long, short, verbatim_doc_comment)]
     format: Option<String>,
+
+    /// Disables filtering of already printed devices. Disable, if you assume that there are devices returning the same
+    /// unique device name (UDN).
+    #[arg(long, short, default_value = "false")]
+    no_unique_udns: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let search_target = (&args).try_into()?;
+    let search_target = SearchTarget::try_from(&args)?;
     let duration = Duration::from_secs(args.duration as u64);
     let devices = rupnp::discover(&search_target, duration, args.ttl).await?;
     pin_utils::pin_mut!(devices);
     let format = args.format.unwrap_or_else(|| "name: {name}, manufacturer: {manufacturer}, model_name: {model_name}, udn: {udn}, url: {url}".into());
 
-    let vec = Vec::new();
     let mut erroneous_responses = 0;
+    let mut printed_devices = HashSet::new();
     loop {
         let device = match devices.try_next().await {
             Ok(Some(device)) => device,
@@ -69,9 +75,11 @@ async fn main() -> Result<()> {
                 continue;
             }
         };
-
+        if !args.no_unique_udns && !printed_devices.insert(device.udn().to_string()) {
+            continue;
+        }
         let named = device.to_named_args();
-        match ParsedFormat::parse(&format, &vec, &named) {
+        match ParsedFormat::parse(&format, &[], &named) {
             Ok(format) => println!("{format}"),
             Err(error_pos) => {
                 eprintln!("Invalid format string at position {error_pos}");
@@ -91,7 +99,7 @@ impl TryFrom<&Args> for SearchTarget {
     type Error = anyhow::Error;
 
     fn try_from(arguments: &Args) -> std::result::Result<Self, Self::Error> {
-        match &arguments.search_target {
+        match &arguments.urn {
             None => Ok(SearchTarget::All),
             Some(value) => SearchTarget::from_str(value.as_str())
                 .with_context(|| format!("Unable to convert '{value}' to an URN.")),
@@ -129,7 +137,7 @@ enum Value<'a> {
     Urn(&'a URN),
 }
 
-impl<'a> FormatArgument for Value<'a> {
+impl FormatArgument for Value<'_> {
     fn supports_format(&self, specifier: &Specifier) -> bool {
         matches!(
             specifier.format,

@@ -1,15 +1,14 @@
 [package]
 name = "rupnpc"
-version = "0.1.4"
+version = "0.2.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-clap = { version = "4", features = ["derive"] }
-
-rupnp = { version = "3", features = ["full_device_spec"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 anyhow = "1"
+clap = { version = "4", features = ["derive"] }
 futures = "0.3"
 pin-utils = "0.1"
 rt-format = "0.3"
+rupnp = { version = "3", features = ["full_device_spec"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
