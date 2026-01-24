@@ -49,7 +49,7 @@ struct Args {
     /// Disables filtering of already printed devices. Disable, if you assume that there are devices returning the same
     /// unique device name (UDN).
     #[arg(long, short, default_value = "false")]
-    no_unique_udns: bool
+    no_unique_udns: bool,
 }
 
 #[tokio::main]
@@ -137,7 +137,7 @@ enum Value<'a> {
     Urn(&'a URN),
 }
 
-impl<'a> FormatArgument for Value<'a> {
+impl FormatArgument for Value<'_> {
     fn supports_format(&self, specifier: &Specifier) -> bool {
         matches!(
             specifier.format,
