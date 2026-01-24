@@ -45,6 +45,11 @@ struct Args {
     /// To print name and url for each discovered item pass -f "{name} {url}".
     #[arg(long, short, verbatim_doc_comment)]
     format: Option<String>,
+
+    /// Disables filtering of already printed devices. Disable, if you assume that there are devices returning the same
+    /// unique device name (UDN).
+    #[arg(long, short, default_value = "false")]
+    no_unique_udns: bool
 }
 
 #[tokio::main]
@@ -70,7 +75,7 @@ async fn main() -> Result<()> {
                 continue;
             }
         };
-        if !printed_devices.insert(device.udn().to_string()) {
+        if !args.no_unique_udns && !printed_devices.insert(device.udn().to_string()) {
             continue;
         }
         let named = device.to_named_args();
